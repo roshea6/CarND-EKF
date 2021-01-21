@@ -37,6 +37,28 @@ FusionEKF::FusionEKF() {
    * TODO: Set the process and measurement noises
    */
 
+  // Set the state mapping function for lidar
+  H_laser_ << 1, 0, 0, 0,
+              0, 1, 0, 0;
+
+  // Set the state transition matrix
+  // This will get updated later with timestep values for the velocity entries in the first and second rows
+  ekf_.F_ = MatrixXd(4, 4);
+  ekf_.F_ << 1, 0, 1, 0,
+             0, 1, 0, 1,
+             0, 0, 1, 0,
+             0, 0, 0, 1;
+
+  // state covariance matrix P
+  ekf_.P_ = MatrixXd(4, 4);
+  ekf_.P_ << 1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1000, 0,
+            0, 0, 0, 1000;
+
+  // set the acceleration noise components to be used by the process noise matrix Q later
+  float noise_ax = 5;
+  float noise_ay = 5;
 
 }
 
@@ -49,7 +71,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   /**
    * Initialization
    */
-  if (!is_initialized_) {
+  if (!is_initialized_) 
+  {
     /**
      * TODO: Initialize the state ekf_.x_ with the first measurement.
      * TODO: Create the covariance matrix.
@@ -61,13 +84,42 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     ekf_.x_ = VectorXd(4);
     ekf_.x_ << 1, 1, 1, 1;
 
-    if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+    if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) 
+    {
       // TODO: Convert radar from polar to cartesian coordinates 
       //         and initialize state.
+      // Get the data from the raw measurements
+      float range = measurement_pack.raw_measurements_[0];
+      float bearing = measurement_pack.raw_measurements_[1];
+      float range_rate = measurement_pack.raw_measurements_[2];
+
+      float px = range*sin(bearing);
+      float py  = range*cos(bearing);
+      // Iffy on whether this is the correct way to get velocities from range rate
+      float vx = range_rate*sin(bearing);
+      float vy  = range_rate*cos(bearing); 
+
+      ekf_.x_(0) = px;
+      ekf_.x_(1) = py;
+      ekf_.x_(2) = vx;
+      ekf_.x_(3) = vy;
+
+      // Update the previous message timestamp
+      previous_timestamp_ = measurement_pack.timestamp_;
 
     }
-    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) 
+    {
       // TODO: Initialize state.
+      // Get the position values from the raw measurement
+      float px = measurement_pack.raw_measurements_[0];
+      float py = measurement_pack.raw_measurements_[1];
+
+      ekf_.x_(0) = px;
+      ekf_.x_(1) = py;
+
+      // Update the previous message timestamp
+      previous_timestamp_ = measurement_pack.timestamp_;
 
     }
 
