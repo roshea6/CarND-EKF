@@ -56,10 +56,6 @@ FusionEKF::FusionEKF() {
             0, 0, 1000, 0,
             0, 0, 0, 1000;
 
-  // set the acceleration noise components to be used by the process noise matrix Q later
-  float noise_ax = 5;
-  float noise_ay = 5;
-
 }
 
 /**
@@ -89,9 +85,9 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       // TODO: Convert radar from polar to cartesian coordinates 
       //         and initialize state.
       // Get the data from the raw measurements
-      float range = measurement_pack.raw_measurements_[0];
-      float bearing = measurement_pack.raw_measurements_[1];
-      float range_rate = measurement_pack.raw_measurements_[2];
+      float range = measurement_pack.raw_measurements_(0);
+      float bearing = measurement_pack.raw_measurements_(1);
+      float range_rate = measurement_pack.raw_measurements_(2);
 
       float px = range*sin(bearing);
       float py  = range*cos(bearing);
@@ -112,11 +108,13 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     {
       // TODO: Initialize state.
       // Get the position values from the raw measurement
-      float px = measurement_pack.raw_measurements_[0];
-      float py = measurement_pack.raw_measurements_[1];
+      float px = measurement_pack.raw_measurements_(0);
+      float py = measurement_pack.raw_measurements_(1);
 
       ekf_.x_(0) = px;
       ekf_.x_(1) = py;
+      ekf_.x_(2) = 0;
+      ekf_.x_(3) = 0;
 
       // Update the previous message timestamp
       previous_timestamp_ = measurement_pack.timestamp_;
@@ -139,6 +137,31 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
    */
 
+  // Get the elapsed time using the current timestamp and the previous one
+  float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
+  previous_timestamp_ = measurement_pack.timestamp_;
+
+  // Define various powers of dt to make the process noise matrix cleaner
+  float dt_2 = dt * dt;
+  float dt_3 = dt_2 * dt;
+  float dt_4 = dt_3 * dt;
+
+  // set the acceleration noise components to be used by the process noise matrix Q
+  float noise_ax = 9;
+  float noise_ay = 9;
+
+  // Update the state transtion matrix with the delta time
+  ekf_.F_(0, 2) = dt;
+  ekf_.F_(1, 3) = dt;
+
+  // Define the process noise matrix Q with the delta time and noise values
+  ekf_.Q_ = MatrixXd(4, 4);
+  ekf_.Q_ <<  dt_4/4*noise_ax, 0, dt_3/2*noise_ax, 0,
+              0, dt_4/4*noise_ay, 0, dt_3/2*noise_ay,
+              dt_3/2*noise_ax, 0, dt_2*noise_ax, 0,
+              0, dt_3/2*noise_ay, 0, dt_2*noise_ay;
+
+
   ekf_.Predict();
 
   /**
@@ -151,11 +174,30 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    * - Update the state and covariance matrices.
    */
 
-  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) 
+  {
     // TODO: Radar updates
+    // Update state mapping and measurement noise matricies to the RADAR ones
+    ekf_.R_ = R_radar_;
 
-  } else {
+    // Calculate the updated Jacobian based on the current state
+    Hj_ = tools.CalculateJacobian(ekf_.x_);
+
+    ekf_.H_ = Hj_;
+
+    // Pass the measurement into the update function
+    ekf_.UpdateEKF(measurement_pack.raw_measurements_);
+
+  } 
+  else 
+  {
     // TODO: Laser updates
+    // Update state mapping and measurement noise matricies to the LiDAR ones
+    ekf_.R_ = R_laser_;
+    ekf_.H_ = H_laser_;
+
+    // Pass the measurement into the update function
+    ekf_.Update(measurement_pack.raw_measurements_);
 
   }
 

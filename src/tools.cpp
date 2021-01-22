@@ -64,7 +64,10 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
    */
 
   // Define the Jacobian Matrix as a 3x4
-  MatrixXd Hj(3,4);
+  MatrixXd Hj;
+
+  // Fill the array with zeros to start
+  Hj = MatrixXd::Zero(3, 4);
 
   // Get the state variables
   float px = x_state(0);
