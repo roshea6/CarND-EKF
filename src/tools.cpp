@@ -82,9 +82,9 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
     return Hj;
   }
 
-  float c1 = pow(px, 2) + pow(py, 2);
+  float c1 = px*px + py*py;
   float c2 = sqrt(c1);
-  float c3 = pow(c1, 3/2);
+  float c3 = (c1*c2);
 
   // Compute the Jacobian matrix
   Hj << px/c2, py/c2, 0, 0,

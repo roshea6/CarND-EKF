@@ -89,11 +89,11 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       float bearing = measurement_pack.raw_measurements_(1);
       float range_rate = measurement_pack.raw_measurements_(2);
 
-      float px = range*sin(bearing);
-      float py  = range*cos(bearing);
+      float px = range*cos(bearing);
+      float py  = range*sin(bearing);
       // Iffy on whether this is the correct way to get velocities from range rate
-      float vx = range_rate*sin(bearing);
-      float vy  = range_rate*cos(bearing); 
+      float vx = range_rate*cos(bearing);
+      float vy  = range_rate*sin(bearing); 
 
       ekf_.x_(0) = px;
       ekf_.x_(1) = py;

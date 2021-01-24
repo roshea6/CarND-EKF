@@ -39,7 +39,7 @@ void KalmanFilter::Update(const VectorXd &z) {
    * TODO: update the state by using Kalman Filter equations
    */
   // Calculate the measurement error
-  VectorXd y = z - H_*x_;
+  VectorXd y = z - (H_*x_);
 
   MatrixXd S = H_ * P_* H_.transpose() + R_;
 
@@ -66,28 +66,42 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   float vx = x_(2);
   float vy = x_(3);
 
-  // Helper variables to make the code cleaner 
-  float c1 = sqrt(pow(px, 2) + pow(py, 2));
+  // Convert to polar
+  float range = sqrt(px*px + py*py);
+  float bearing = atan2(py, px);
+  float range_rate;
 
+  float thresh = 0.0001;
+
+  // Make sure there is no divide by 0 error when range is very small
+  if(range > thresh)
+  {
+    range_rate = (px*vx + py*vy)/range;
+  }
+  else
+  {
+    // There might be something better to do besides setting range rate to 0
+    range_rate = 0;
+  }
+  
   VectorXd h_x;
   h_x = VectorXd(3);
 
-  // Load the values into the array and ensure that there won't be a divide by 0 error
-  float thresh = 0.0001;
-  h_x << c1, atan2(py, px), (px*vx + py*vy)/(std::max(c1, thresh));
-
-  // Normalize the bearing angle
-  while(h_x(1) > M_PI)
-  {
-    h_x(1) -= 2* M_PI;
-  }
-  while(h_x(1) < -M_PI)
-  {
-    h_x(1) += 2* M_PI;
-  }
+  // Load the values into the array
+  h_x << range, bearing, range_rate;
 
   // Calculate the measurement error
   VectorXd y = z - h_x;
+
+  // Normalize the bearing angle
+  while(y(1) > M_PI)
+  {
+    y(1) -= 2* M_PI;
+  }
+  while(y(1) < -M_PI)
+  {
+    y(1) += 2* M_PI;
+  }
 
   MatrixXd S = H_ * P_* H_.transpose() + R_;
 
