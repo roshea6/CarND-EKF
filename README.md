@@ -67,6 +67,12 @@ Here is the main protocol that main.cpp uses for uWebSocketIO in communicating w
 ## Results
 Once the Kalman Filter was built it was tested using the simulator. Initially I ran into some issues where the predicted velocity values would ger very large when the position was near 0. This was caused by the range being a near 0 which then caused the range rate to jump to a very large number because the formula involved dividing by the range. Once the range rate calculation was fixed the Extended Kalman Filter performed very well. The results for dataset 1 and 2 can be seen below.
 
+![alt text][image1]
+![alt text][image2]
+
+To see the Extende Kalman Filter in action I recorder videos of my simulator for both datasets which can be seen at the following links:
+- https://youtu.be/ryPWRzXsMWM
+- https://youtu.be/vaah4iLsGqM
 
 
 
